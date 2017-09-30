@@ -18,7 +18,6 @@ def initialize_parameters( layer_dims):
 
 
 def forward_propagation( X, params):
-    
     L = len(params) // 2   # Example: L=4, [n_x, 20, 7, 5, 1]
     
     caches = []   # (A_prev, Z)
@@ -27,13 +26,11 @@ def forward_propagation( X, params):
     for l in range(1, L): #1..3
         Z = np.dot( params["W"+str(l)], A_prev) + params["b"+str(l)]
         A = relu( Z)
-        
         caches.append( (A_prev ,Z))
         A_prev = A
 
     Z = np.dot( params["W"+str(L)], A_prev) + params["b"+str(L)]
     AL = sigmoid( Z)
-    
     caches.append( (A_prev, Z) )
     
     return AL, caches
