@@ -1,10 +1,10 @@
-# todo: numpy vs pytorch
+# toDO: numpy vs pytorch
 
 import numpy as np
 
 from nn_utils import sigmoid, sigmoid_prime, relu, relu_prime
 
-def initialize_parameters( layer_dims):  #[12288, 20, 7, 5, 1]
+def initialize_parameters( layer_dims):
     np.random.seed(1)
     
     params = {}
@@ -18,9 +18,8 @@ def initialize_parameters( layer_dims):  #[12288, 20, 7, 5, 1]
 
 
 def forward_propagation( X, params):
-    #[12288, 20, 7, 5, 1]
     
-    L = len(params) // 2   # L=4
+    L = len(params) // 2   # Example: L=4, [n_x, 20, 7, 5, 1]
     
     caches = []   # (A_prev, Z)
 
@@ -67,9 +66,6 @@ def compute_grads( dA, W, cache, activation = "relu"):
 
     
 def backward_propagation( AL, Y, params, caches):
-    #[12288, 20, 7,  5,  1]
-    #      [z1, z2, z3, z4]
-    
     grads = {}
     
     L = len(params) // 2
@@ -77,7 +73,7 @@ def backward_propagation( AL, Y, params, caches):
         
     activation = "sigmoid"
     dA = -np.divide(Y, AL) + np.divide(1-Y, 1-AL)
-    for l in reversed( range( 1, L+1)):  # 4,..,1
+    for l in reversed( range( 1, L+1)):
         dA_prev, dW, db = compute_grads( dA, params["W"+str(l)], caches[l-1], activation)
         grads["dW"+str(l)] = inv_m * dW
         grads["db"+str(l)] = inv_m * db
@@ -90,7 +86,7 @@ def backward_propagation( AL, Y, params, caches):
 def update_parameters( grads, params, learning_rate):
     L = len(params) // 2
     
-    for l in reversed( range( 1, L+1)): #4,..,1
+    for l in reversed( range( 1, L+1)):
         params["W"+str(l)] = params["W"+str(l)] - learning_rate * grads["dW"+str(l)]
         params["b"+str(l)] = params["b"+str(l)] - learning_rate * grads["db"+str(l)]
         
@@ -130,5 +126,3 @@ def nn_predict( X, params):
     probs[ y_hat > 0.5] = 1
     
     return probs
-    
-    
