@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from nn_utils import load_data
 from nn import nn_model, nn_predict
@@ -13,6 +14,8 @@ plt.rcParams['image.cmap'] = 'white'
 # Train
 #
 
+np.random.seed(1)
+
 # dataset shape = ( 250, 64, 64, 3) 250 samples, images: 64x64x3
 train_x_orig, train_y, test_x_orig, test_y, classes = load_data( 
         'datasets/train_catvnoncat.h5', 'datasets/test_catvnoncat.h5')
@@ -25,10 +28,13 @@ test_x_flatten = test_x_orig.reshape(test_x_orig.shape[0], -1).T
 train_x = train_x_flatten/255.
 test_x = test_x_flatten/255.
 
+tic = time.time()
 
 learning_rate = 0.0075
 layers_dims = [12288, 20, 7, 5, 1] #  5-layer model
-parameters, costs = nn_model(train_x, train_y, layers_dims, epochs = 2500)
+parameters, costs = nn_model(train_x, train_y, layers_dims, initialization="xavier", epochs = 2500)
+
+print("Total training time: {0:.3f} secs".format(time.time()-tic))
 
 # plot the cost
 plt.plot(np.squeeze(costs))
