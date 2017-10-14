@@ -32,7 +32,12 @@ tic = time.time()
 
 learning_rate = 0.0075
 layers_dims = [12288, 20, 7, 5, 1] #  5-layer model
-parameters, costs = nn_model(train_x, train_y, layers_dims, initialization="xavier", epochs = 2500)
+parameters, costs = nn_model(train_x, 
+                             train_y, 
+                             layers_dims, 
+                             initialization="xavier", 
+                             epochs = 2500, 
+                             lambd = 0.7)
 
 print("Total training time: {0:.3f} secs".format(time.time()-tic))
 

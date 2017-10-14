@@ -44,13 +44,16 @@ def forward_propagation( X, params):
     return AL, caches
 
 
-def compute_cost( A, Y, parameters, lambd = 0):
+def compute_cost( A, Y, params, lambd_factor = 0):
     m = Y.shape[1]
     
     l2_reg_cost = 0
-    
-    #if 0 != lambd:
-    #    l2_reg_cost = toDO
+    if 0 != lambd_factor: # lambd_factor = lambd / m
+        L = len(params) // 2
+        for l in range(1,L+1):
+            l2_reg_cost += np.sum(np.square(params["W"+str(l)]))
+        l2_reg_cost = (lambd_factor*0.5) * l2_reg_cost
+        
     
     logprobs = np.multiply(-np.log(A),Y) + np.multiply(-np.log(1 - A), 1 - Y)
     cost = 1./m * np.sum(logprobs) + l2_reg_cost
@@ -58,7 +61,7 @@ def compute_cost( A, Y, parameters, lambd = 0):
     return cost
 
 
-def compute_grads( inv_m, dA, W, cache, activation = "relu"):
+def compute_grads( inv_m, dA, W, cache, lambd_factor = 0, activation = "relu"):
     A_prev, Z = cache
     
     if "relu" == activation:
@@ -67,7 +70,11 @@ def compute_grads( inv_m, dA, W, cache, activation = "relu"):
     if "sigmoid" == activation:
         dZ = dA * sigmoid_prime( Z)
     
-    dW = inv_m * np.dot( dZ, A_prev.T)
+    
+    dW = inv_m * np.dot( dZ, A_prev.T)    
+    if 0 != lambd_factor:
+        dW = dW + lambd_factor * W
+        
     db = inv_m * dZ.sum( axis = 1, keepdims = True)
 
     dA_prev = np.dot(W.T, dZ)
@@ -76,7 +83,7 @@ def compute_grads( inv_m, dA, W, cache, activation = "relu"):
 
 
     
-def backward_propagation( AL, Y, params, caches, lambd = 0):
+def backward_propagation( AL, Y, params, caches, lambd_factor = 0):
     grads = {}
     
     L = len(params) // 2
@@ -87,18 +94,22 @@ def backward_propagation( AL, Y, params, caches, lambd = 0):
     dA = -np.divide(Y, AL) + np.divide(1-Y, 1-AL)
     for l in reversed( range( 1, L+1)):
         dA_prev, grads["dW"+str(l)], grads["db"+str(l)] = \
-            compute_grads( inv_m, dA, params["W"+str(l)], caches[l-1], activation)
+            compute_grads( inv_m, dA, params["W"+str(l)], caches[l-1], lambd_factor, activation)
         dA = dA_prev
         activation = "relu"
 
     return grads, dA_prev
 
     
-def update_parameters( grads, params, learning_rate):
+def update_parameters( grads, params, learning_rate, lambd_factor = 0):
     L = len(params) // 2
     
     for l in reversed( range( 1, L+1)):
-        params["W"+str(l)] = params["W"+str(l)] - learning_rate * grads["dW"+str(l)]
+        dW = grads["dW"+str(l)]
+        if 0 != lambd_factor:
+            dW = dW + lambd_factor * params["W"+str(l)]
+        
+        params["W"+str(l)] = params["W"+str(l)] - learning_rate * dW
         params["b"+str(l)] = params["b"+str(l)] - learning_rate * grads["db"+str(l)]
         
     return params
@@ -111,13 +122,17 @@ def gradient_check(X, Y,  grads, params, epsilon = 1e-7):
 def nn_model( X, Y, layers_dim, epochs = 2500, initialization = "he", learning_rate = 0.0075, lambd = 0):
     parameters = initialize_parameters( layers_dim, initialization)
 
+    lambd_factor = 0
+    if 0 != lambd:
+        lambd_factor = lambd / X.shape[1]
+
     costs = []
     for epoch in range(epochs):
         AL, caches = forward_propagation( X, parameters)
            
-        cost = compute_cost( AL, Y, parameters, lambd)
+        cost = compute_cost( AL, Y, parameters, lambd_factor)
 
-        grads, _ = backward_propagation( AL, Y, parameters, caches, lambd)
+        grads, _ = backward_propagation( AL, Y, parameters, caches, lambd_factor)
         
         parameters = update_parameters( grads, parameters, learning_rate)
 
