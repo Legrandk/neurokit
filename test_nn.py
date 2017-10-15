@@ -35,9 +35,10 @@ layers_dims = [12288, 20, 7, 5, 1] #  5-layer model
 parameters, costs = nn_model(train_x, 
                              train_y, 
                              layers_dims, 
-                             initialization="xavier", 
+                             initialization = "xavier", 
                              epochs = 2500, 
-                             lambd = 0.7)
+                             lambd = 0.7,
+                             drop_out = 0.1)
 
 print("Total training time: {0:.3f} secs".format(time.time()-tic))
 
