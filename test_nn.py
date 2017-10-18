@@ -36,9 +36,10 @@ parameters, costs = nn_model(train_x,
                              train_y, 
                              layers_dims, 
                              initialization = "xavier", 
-                             epochs = 2500, 
+                             epochs = 2500,
+                             batch_size = 32,
                              lambd = 0.7,
-                             drop_out = 0.1)
+                             drop_out = 0) #0.1)
 
 print("Total training time: {0:.3f} secs".format(time.time()-tic))
 

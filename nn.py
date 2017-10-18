@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from nn_utils import sigmoid, sigmoid_prime, relu, relu_prime
+from nn_utils import sigmoid, sigmoid_prime, relu, relu_prime, random_minibatch
 
 
 def initialize_parameters( layer_dims, method = "rand"):
@@ -60,7 +60,7 @@ def forward_propagation( X, params, drop_out = 0):
 
 def compute_cost( A, Y, params, lambd_factor = 0):
     m = Y.shape[1]
-    
+
     l2_reg_cost = 0
     if 0 != lambd_factor: # lambd_factor = lambd / m
         L = len(params) // 2
@@ -137,28 +137,49 @@ def gradient_check(X, Y,  grads, params, epsilon = 1e-7):
     pass
 
 
-def nn_model( X, Y, layers_dim, epochs = 2500, initialization = "he", learning_rate = 0.0075, lambd = 0, drop_out = 0):
+def compute_batch( X, Y, parameters, learning_rate, lambd_factor, drop_out):
+    AL, caches = forward_propagation( X, parameters, drop_out)
+       
+    cost = compute_cost( AL, Y, parameters, lambd_factor)
+    
+    grads, _ = backward_propagation( AL, Y, parameters, caches, lambd_factor, drop_out)
+    
+    parameters = update_parameters( grads, parameters, learning_rate)
+
+    return parameters, cost
+
+
+def nn_model( X, Y, layers_dim, epochs = 2500, initialization = "he", learning_rate = 0.0075, batch_size = 64, lambd = 0, drop_out = 0):
     parameters = initialize_parameters( layers_dim, initialization)
 
     lambd_factor = 0
-    if 0 != lambd:
-        lambd_factor = lambd / X.shape[1]
 
     costs = []
     for epoch in range(epochs):
-        AL, caches = forward_propagation( X, parameters, drop_out)
-           
-        cost = compute_cost( AL, Y, parameters, lambd_factor)
-
-        grads, _ = backward_propagation( AL, Y, parameters, caches, lambd_factor, drop_out)
+        epoch_cost = 0
         
-        parameters = update_parameters( grads, parameters, learning_rate)
+        minibatches = random_minibatch( X, Y, batch_size)
+        num_minibatches = len(minibatches)
 
-        if 0 == (epoch%100):
-            costs.append( cost)
-            print("Epoch: {} - Cost: {}".format(epoch, cost))
-    
+        for batch in minibatches:
+            (batch_X, batch_Y) = batch
+            
+            if 0 != lambd:
+                lambd_factor = lambd / batch_X.shape[1]
         
+            parameters, cost = compute_batch( batch_X, batch_Y,
+                                              parameters,
+                                              learning_rate,
+                                              lambd_factor,
+                                              drop_out)
+            epoch_cost += cost / num_minibatches
+
+        if 0 == epoch%100:
+            print("Epoch: {}. Cost: {}".format(epoch, epoch_cost))
+            
+        if 0 == epoch%5:
+            costs.append( epoch_cost)
+
     return parameters, costs
 
 

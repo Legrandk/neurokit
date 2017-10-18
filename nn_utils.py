@@ -75,6 +75,27 @@ def vector_to_parameters( vector, shapes):
     return params
 
 
+def random_minibatch( X, Y, batch_size):
+    m = X.shape[1]
+
+    minibatches = [] #( minibatch_X, minibatch_Y)
+    num_minibatches = m // batch_size
+
+    permutation = np.random.permutation( X.shape[1])
+
+    shuffled_X, shuffled_Y = X[:,permutation], Y[:,permutation]
+
+    for i in range(num_minibatches):
+        idx = i*batch_size
+        minibatches.append( (shuffled_X[:,idx:idx+batch_size], shuffled_Y[:,idx:idx+batch_size]))
+
+    if 0 != (m % batch_size):
+        idx = num_minibatches * batch_size
+        minibatches.append( (shuffled_X[:,idx:], shuffled_Y[:,idx:]))
+
+    return minibatches
+
+
 def load_data( train_filename, test_filename ):
     train_dataset = h5py.File( train_filename, "r")
     train_set_x_orig = np.array(train_dataset["train_set_x"][:]) # your train set features
