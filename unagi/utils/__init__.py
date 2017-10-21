@@ -112,3 +112,10 @@ def load_data( train_filename, test_filename ):
     
     return train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig, classes
 
+
+def save_model( model, filename):
+    pass
+
+
+def load_model( model, filename):
+    pass
