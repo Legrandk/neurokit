@@ -13,6 +13,9 @@ def relu(Z):
 def relu_prime(Z):
     return (Z >= 0)
 
+def softmax(Z):
+    t = np.exp( Z)
+    return t / np.sum(t, axis=0)
 
 def params_to_vector( params):
     shapes = []
@@ -119,3 +122,4 @@ def save_model( model, filename):
 
 def load_model( model, filename):
     pass
+

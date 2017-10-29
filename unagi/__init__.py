@@ -2,13 +2,16 @@ import numpy as np
 
 import unagi.optim as optim
 import unagi.utils as utils
+import unagi.loss  as loss
 
 
 class nn(object):
-	def __init__( self, layers_dim, framework = None): #None: numpy, tf, torch
-		self._initializer = "xavier"
+	def __init__( self, layers_dim, initializer="xavier", framework = None): #None: numpy, tf, torch
+		self._initializer = initializer
 		self._layers_dim = layers_dim
+		self.parameters = {}
 		self.optimizer = optim.GradientDescent()
+		self.loss = loss.Sigmoid_Cross_Entropy()
 
 
 	def set_seed( self, seed):
@@ -42,6 +45,7 @@ class nn(object):
 
 	    keep_prob = 1 - drop_out
 	    
+	    # Hidden Layers
 	    A_prev = X
 	    for l in range(1, L): #1..3
 	        Z = np.dot( params["W"+str(l)], A_prev) + params["b"+str(l)]
@@ -61,70 +65,56 @@ class nn(object):
 	        caches.append( (A_prev, D, Z))
 	        A_prev = A
 
+	    # Output Layer
 	    Z = np.dot( params["W"+str(L)], A_prev) + params["b"+str(L)]
-	    AL = utils.sigmoid( Z)
+	    AL = self.loss.activation( Z)
 	    caches.append( (A_prev, -1, Z) )
 	    
 	    return AL, caches
 
 
-	def compute_grads( self, inv_m, dA, W, cache, lambd_factor = 0, activation = "relu"):
-	    A_prev, D, Z = cache
-	    
-	    if "relu" == activation:
-	        dZ = dA * utils.relu_prime( Z)
-
-	    if "sigmoid" == activation:
-	        dZ = dA * utils.sigmoid_prime( Z)
-	    
-	    dW = inv_m * np.dot( dZ, A_prev.T)    
-	    if 0 != lambd_factor:
-	        dW = dW + lambd_factor * W     
-	    db = inv_m * dZ.sum( axis = 1, keepdims = True)
-
-	    dA_prev = np.dot(W.T, dZ)
-	    
-	    return dA_prev, dW, db
-
-
 	def backward_propagation( self, AL, Y, params, caches, lambd_factor, drop_out):
-	    grads = {}
-	    
-	    L = len(params) // 2
-	    
-	    inv_m = 1. / Y.shape[1]
+		grads = {}
 
-	    activation = "sigmoid"
-	    dA = -np.divide(Y, AL) + np.divide(1-Y, 1-AL)
-	    for l in reversed( range( 1, L+1)):
-	        dA_prev, grads["dW"+str(l)], grads["db"+str(l)] = \
-	            self.compute_grads( inv_m, dA, params["W"+str(l)], caches[l-1], lambd_factor, activation)
-	            
-	        if 0 < drop_out and 1 < l:
-	            _, D, _ = caches[l-2]
-	            dA_prev = np.multiply( dA_prev, D)
-	            dA_prev = dA_prev / (1-drop_out)
-	            
-	        dA = dA_prev
-	        activation = "relu"
+		L = len(params) // 2
 
-	    return grads, dA_prev
+		inv_m = 1. / Y.shape[1]
+
+		# Output Layer
+		A_prev, _, Z = caches[L-1]
+		dZ = self.loss.derivative( Y, AL)
+
+		l2_reg = np.zeros(params["W"+str(L)].shape)
+		if 0 != lambd_factor:
+			l2_reg = lambd_factor * params["W"+str(L)] 
+
+		grads["dW" + str(L)] = inv_m * np.dot(dZ, A_prev.T) + l2_reg
+		grads["db" + str(L)] = inv_m * np.sum(dZ, axis = 1, keepdims = True)
+		dA_prev = np.dot( params["W"+str(L)].T, dZ)
+
+		# Hidden Layers
+		for l in reversed( range( 1, L)):
+			A_prev, D, Z = caches[l-1]
+
+			dZ = dA_prev * utils.relu_prime( Z)
+
+			l2_reg = np.zeros(params["W"+str(l)].shape)
+			if 0 != lambd_factor:
+				l2_reg = lambd_factor * params["W"+str(l)] 
+
+			grads["dW" + str(l)] = inv_m * np.dot(dZ, A_prev.T) + l2_reg
+			grads["db" + str(l)] = inv_m * np.sum(dZ, axis = 1, keepdims = True)
+			dA_prev = np.dot( params["W"+str(l)].T, dZ)
+
+			if 0 < drop_out and 1 < l:
+				dA_prev = np.multiply( dA_prev, D)
+				dA_prev = dA_prev / (1-drop_out)
+
+		return grads, dA_prev
 
 
 	def compute_cost( self, logits, labels, params, lambd_factor = 0):
-	    m = labels.shape[1]
-
-	    l2_reg_cost = 0
-	    if 0 != lambd_factor: # lambd_factor = lambd / m
-	        L = len(params) // 2
-	        for l in range(1,L+1):
-	            l2_reg_cost += np.sum(np.square(params["W"+str(l)]))
-	        l2_reg_cost = (lambd_factor*0.5) * l2_reg_cost
-
-	    logprobs = np.multiply(-np.log(logits),labels) + np.multiply(-np.log(1 - logits), 1 - labels)
-	    cost = 1./m * np.sum(logprobs) + l2_reg_cost
-
-	    return cost
+		return self.loss.cost( logits, labels, params, lambd_factor)
 
 
 	def compute_batch( self, X, Y, params, lambd_factor, drop_out):

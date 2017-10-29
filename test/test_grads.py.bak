@@ -1,0 +1,83 @@
+import numpy as np
+
+#from nn import nn_model, forward_propagation, backward_propagation, compute_cost
+#from nn_utils import params_to_vector, vector_to_parameters, grads_to_vector
+
+import unagi
+from unagi.utils import params_to_vector, vector_to_parameters, grads_to_vector
+
+
+np.random.seed(1)
+
+M = 16
+
+X = np.random.randn(4, M)
+Y = np.random.randn(1, M) < 0.7
+
+learning_rate = 0.0075
+layers_dims = [4, 3, 3, 1]
+lambd = 0 #0.7
+drop_out = 0
+
+model = unagi.nn( layers_dims, initializer="he")
+#parameters,_ = nn_model( X, Y, layers_dims, epochs = 1, initialization = "he", lambd = lambd)
+model.train( X, Y, 
+             epochs = 1, batch_size = M, lambd = lambd, drop_out = drop_out)
+parameters = model.parameters
+
+#parameters = initialize_parameters( layers_dims, method="he")
+lambd_factor = lambd / M
+#A, caches = forward_propagation( X, parameters)
+A, caches = model.forward_propagation( X, parameters)
+J = model.compute_cost( A, Y, parameters, lambd_factor)
+grads,_ = model.backward_propagation( A, Y, parameters, caches, lambd_factor, drop_out = drop_out)
+
+print("*** J: {}".format(J))
+print("*** A: {}".format(A))
+print("*** dW1: {}".format(grads["dW1"]))
+print("*** db1: {}".format(grads["db1"]))
+print("*** dW2: {}".format(grads["dW2"]))
+print("*** db2: {}".format(grads["db2"]))
+
+
+epsilon = 1e-7
+p_values, p_shape = params_to_vector( parameters)
+grads_values,_    =  grads_to_vector( grads)
+
+grads_approx = np.zeros(grads_values.shape)
+
+inv_2e = 1. / (2*epsilon)
+
+num_params = p_values.shape[0]
+print("*** Num params: {}".format(num_params))
+for i in range(0, num_params):
+    theta_plus = np.copy(p_values)
+    theta_plus[i,0] = theta_plus[i,0] + epsilon
+
+    theta_minus = np.copy(p_values)
+    theta_minus[i,0] = theta_minus[i,0] - epsilon
+    
+    AL,_ = model.forward_propagation( X, vector_to_parameters(theta_plus, p_shape))
+    J_plus = model.compute_cost( AL, Y, vector_to_parameters(theta_plus, p_shape), lambd_factor)
+    
+    AL,_ = model.forward_propagation( X, vector_to_parameters(theta_minus, p_shape))
+    J_minus = model.compute_cost( AL, Y, vector_to_parameters(theta_minus, p_shape), lambd_factor)
+
+    #print("*** [{}] J_plus({}): {}, J_minus({}): {}".format(i, theta_plus[i,0], J_plus, theta_minus[i,0], J_minus))
+    
+    grads_approx[i] = inv_2e * (J_plus - J_minus) #/ (2*epsilon)
+
+#for i in range(0, num_params):
+    #print("*** [{}] Grad_Apprx:{} vs Grad:{}".format(i,grads_approx[i],grads_values[i]))
+    
+
+numerator = np.linalg.norm( grads_approx - grads_values)
+denominator = np.linalg.norm( grads_approx) + np.linalg.norm(grads_values)
+
+diff = numerator / denominator
+
+if diff > 1e-7:
+    print("*** WARNING: There is a mistake in the backward propagation! difference = {}".format(diff))
+else:
+    print("*** Your grads looks great! {}".format(diff))
+    
