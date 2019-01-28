@@ -46,8 +46,12 @@ model.optimizer.set_learning_rate( learning_rate)
 
 #model.setInitialization(Unagi.initialization.xavier())
 #model.setOptimizer( Unagi.optimizer.GradientDescent(learning_rate = 0.0075))
-model.train( train_x, train_y, 
-			 epochs = 2500, batch_size = batch_size, lambd = weight_decay, drop_out = drop_out)
+model.train( train_x,
+             train_y, 
+  	     epochs = 2500,
+             batch_size = batch_size,
+             lambd = weight_decay,
+             drop_out = drop_out)
 
 print("Total training time: {0:.3f} secs".format(time.time()-tic))
 
